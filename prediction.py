@@ -14,6 +14,8 @@ from nltk.stem import WordNetLemmatizer
 from sklearn.base import BaseEstimator, TransformerMixin
 import nltk
 import pickle
+from sklearn.metrics import classification_report
+
 
 
 # Download necessary NLTK data
@@ -71,7 +73,11 @@ class FeatureExtractor(BaseEstimator, TransformerMixin):
         
         return pd.DataFrame(features)
 
-def mainn(test_df, selected_features=None):
+def evaluate_model(y_true, y_pred):
+    report = classification_report(y_true, y_pred, target_names=['Not Sarcasm', 'Sarcasm'], output_dict=True)
+    return report
+
+def mainn(test_df, eval_flag):
     # Preprocess text data
     test_df['processed_text'] = test_df['body'].apply(preprocess_text)
 
@@ -97,19 +103,10 @@ def mainn(test_df, selected_features=None):
     with open('feature_extractor.pkl', 'rb') as f:
         extractor = pickle.load(f)
 
-    # Extract features based on selected features
+    # Extract features
     X_test_counts = vectorizer.transform(test_df['full_text'])
     X_test_tfidf = tfidf_transformer.transform(X_test_counts)
-    
-    if selected_features:
-        # Filter out the selected features
-        selected_features_indices = [feature_names.index(feature) for feature in selected_features]
-        X_test_additional_features = extractor.transform(test_df['full_text'])[:, selected_features_indices]
-    else:
-        # Use all features if none specified
-        X_test_additional_features = extractor.transform(test_df['full_text'])
-
-    # Combine TF-IDF and additional features
+    X_test_additional_features = extractor.transform(test_df['full_text'])
     X_test_combined = np.hstack((X_test_tfidf.toarray(), X_test_additional_features))
 
     # Predict on test set
@@ -121,9 +118,26 @@ def mainn(test_df, selected_features=None):
     # Save the predictions to a new CSV file
     test_df.to_csv('reddit_test_with_predictions.csv', index=False)
 
+    report = ""
+    if eval_flag == 1:
+        # Evaluate the model
+        y_true = test_df['sarcasm_tag']  # Assuming you have the true labels in 'sarcasm_tag' column
+        report = evaluate_model(y_true, y_pred)
+        
+        # Convert the classification report to DataFrames
+        report_df = pd.DataFrame.from_dict({key: value for key, value in report.items() if isinstance(value, dict)}, orient='index')
+        accuracy_df = pd.DataFrame.from_dict({'accuracy': report['accuracy']}, orient='index')
+
+        # Merge DataFrames
+        report_df = pd.concat([report_df, accuracy_df])
+        # Print the evaluation report
+        report = report_df
+        print("Evaluation Report:")
+        print(report)
+
     # Print the predictions for the entire test dataset
     print(test_df[['body', 'sarcasm_pred']])
-    return test_df[['index', 'body', 'author', 'id', 'sarcasm_pred']].rename(columns={'index': 'Index', 'id': 'ID', 'author': 'Author', 'body': 'Body' , 'sarcasm_pred': 'Sarcasm Tag'}).reindex(columns=['Index', 'ID', 'Author', 'Body', 'Sarcasm Tag'])
+    return test_df[['index', 'body', 'author', 'id', 'sarcasm_pred']].rename(columns={'index': 'Index', 'id': 'ID', 'author': 'Author', 'body': 'Body' , 'sarcasm_pred': 'Sarcasm Tag'}).reindex(columns=['Index', 'ID', 'Author', 'Body', 'Sarcasm Tag']), report
 
 
 def predict_sarcasm(text):
@@ -157,27 +171,3 @@ def predict_sarcasm(text):
     sarcasm_pred = best_svm_clf.predict(X_combined)[0]  # Assuming a single prediction
     
     return sarcasm_pred
-
-
-# def get_post_body(link):
-#     # Send a GET request to the Reddit post link
-#     response = requests.get(link)
-#     if response.status_code != 200:
-#         raise Exception(f"Failed to fetch Reddit post from {link}. Status code: {response.status_code}")
-
-#     # Parse the HTML content using BeautifulSoup
-#     soup = BeautifulSoup(response.content, 'html.parser')
-
-#     # Find and extract the body of the post
-#     post_body = soup.find('div', class_='Post').get_text()
-
-#     return post_body
-
-# def predict_sarcasm_from_link(link):
-#     # Extract the body of the Reddit post from the provided link
-#     post_body = get_post_body(link)
-
-#     # Predict sarcasm using the predict_sarcasm function
-#     sarcasm_pred = predict_sarcasm(post_body)
-
-#     return sarcasm_pred
