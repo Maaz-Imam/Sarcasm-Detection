@@ -15,9 +15,12 @@ from sklearn.base import BaseEstimator, TransformerMixin
 import nltk
 import pickle
 
+
+# Download necessary NLTK data
 nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('wordnet')
+
 
 # Define preprocessing functions
 def preprocess_text(text):
@@ -68,7 +71,7 @@ class FeatureExtractor(BaseEstimator, TransformerMixin):
         
         return pd.DataFrame(features)
 
-def mainn(test_df):
+def mainn(test_df, selected_features=None):
     # Preprocess text data
     test_df['processed_text'] = test_df['body'].apply(preprocess_text)
 
@@ -94,10 +97,19 @@ def mainn(test_df):
     with open('feature_extractor.pkl', 'rb') as f:
         extractor = pickle.load(f)
 
-    # Extract features
+    # Extract features based on selected features
     X_test_counts = vectorizer.transform(test_df['full_text'])
     X_test_tfidf = tfidf_transformer.transform(X_test_counts)
-    X_test_additional_features = extractor.transform(test_df['full_text'])
+    
+    if selected_features:
+        # Filter out the selected features
+        selected_features_indices = [feature_names.index(feature) for feature in selected_features]
+        X_test_additional_features = extractor.transform(test_df['full_text'])[:, selected_features_indices]
+    else:
+        # Use all features if none specified
+        X_test_additional_features = extractor.transform(test_df['full_text'])
+
+    # Combine TF-IDF and additional features
     X_test_combined = np.hstack((X_test_tfidf.toarray(), X_test_additional_features))
 
     # Predict on test set

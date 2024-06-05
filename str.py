@@ -20,14 +20,13 @@ if input_method == 'Upload CSV':
         # Display the uploaded data
         st.write("Uploaded CSV:")
         st.write(data)
-        
+
+        # Feature selection
+        selected_features = st.multiselect('Select features to use:', ['explicit', 'implicit'])
+
         # Placeholder for backend processing
-        # TODO: Add backend processing here
         st.write("Processing...")
-        result = mainn(data)
-        # # Mock processing result (for demonstration purposes)
-        # result = data.copy()
-        # result['sarcasm_tag'] = ['not_sarcastic'] * len(data)  # Replace with actual processing results
+        result = mainn(data, selected_features)
 
         def get_row_color(row):
             if row['Sarcasm Tag'] == 'yes':
@@ -43,7 +42,6 @@ if input_method == 'Upload CSV':
         # Display the styled DataFrame
         st.write("Results:")
         st.write(styled_df)
-
         
 elif input_method == 'Enter Text Prompt':
     # Text input for a single prompt
@@ -51,8 +49,11 @@ elif input_method == 'Enter Text Prompt':
 
     if st.button('Submit'):
         if text_prompt:
+            # Feature selection
+            selected_features = st.multiselect('Select features to use:', ['explicit', 'implicit'])
+
             # Placeholder for backend processing
-            result = predict_sarcasm(text_prompt)
+            result = predict_sarcasm(text_prompt, selected_features)
 
             st.write("Processing...")
             
@@ -61,20 +62,3 @@ elif input_method == 'Enter Text Prompt':
             st.write(result)
         else:
             st.write("Please enter a text prompt.")
-
-# elif input_method == 'Link':
-#     # Text input for a single prompt
-#     link_prompt = st.text_area("Enter your link here:")
-
-#     if st.button('Submit'):
-#         if link_prompt:
-#             # Placeholder for backend processing
-#             result = predict_sarcasm_from_link(link_prompt)
-
-#             st.write("Processing...")
-            
-#             # Display the results
-#             st.write("Results:")
-#             st.write(result)
-#         else:
-#             st.write("Please enter a link.")
