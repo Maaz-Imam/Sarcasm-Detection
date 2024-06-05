@@ -15,6 +15,9 @@ from sklearn.base import BaseEstimator, TransformerMixin
 import nltk
 import pickle
 
+nltk.download('stopwords')
+nltk.download('punkt')
+nltk.download('wordnet')
 
 # Define preprocessing functions
 def preprocess_text(text):
