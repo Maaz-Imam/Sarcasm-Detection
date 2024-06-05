@@ -14,8 +14,6 @@ from nltk.stem import WordNetLemmatizer
 from sklearn.base import BaseEstimator, TransformerMixin
 import nltk
 import pickle
-import requests
-from bs4 import BeautifulSoup
 
 
 # Define preprocessing functions
